@@ -56,3 +56,8 @@ def sign_up(request):
 			return redirect('sign-up')
 	context = {}
 	return render(request, 'core/signup.html', context)
+
+
+def log_out(request):
+	auth.logout(request)
+	return redirect('sign-in')
