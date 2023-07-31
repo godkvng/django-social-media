@@ -2,10 +2,12 @@ from django.shortcuts import render
 from django.contrib.auth.models import User, auth
 from django.contrib import messages
 from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
 
 from .models import Profile
 
 
+@login_required(login_url='sign-in')
 def index(request):
 	context = {}
 	return render(request, 'core/index.html', context)
@@ -46,11 +48,14 @@ def sign_up(request):
 				user = User.objects.create_user(username=username, email=email, password=password1)
 				user.save()
 
+				user_login = auth.authenticate(username=username, password=password1)
+				auth.login(request, user_login)
+
 				# Create a profile object for the new user
 				user_model = User.objects.get(username=username)
 				user_profile = Profile.objects.create(user=user_model, id_user=user_model.id)
 				user_profile.save()
-				return redirect('login')
+				return redirect('settings')
 		else:
 			messages.info(request, "Passwords do not match")
 			return redirect('sign-up')
@@ -58,6 +63,38 @@ def sign_up(request):
 	return render(request, 'core/signup.html', context)
 
 
+@login_required(login_url='sign-in')
 def log_out(request):
 	auth.logout(request)
 	return redirect('sign-in')
+
+
+@login_required(login_url='sign-in')
+def settings(request):
+	user_profile = Profile.objects.get(user=request.user)
+
+	if request.method == 'POST':
+		if request.FILES.get('image') is not None:
+			image = request.FILES.get('image')
+			bio = request.POST['bio']
+			location = request.POST['location']
+
+			user_profile.profileimg = image
+			user_profile.bio = bio
+			user_profile.location = location
+			user_profile.save()
+		else:
+			image = user_profile.profileimg
+			bio = request.POST['bio']
+			location = request.POST['location']
+
+			user_profile.profileimg = image
+			user_profile.bio = bio
+			user_profile.location = location
+			user_profile.save()
+		return redirect('settings')
+
+	context = {
+		'user_profile': user_profile
+	}
+	return render(request, 'core/setting.html', context)
