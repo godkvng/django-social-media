@@ -4,12 +4,16 @@ from django.contrib import messages
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 
-from .models import Profile
+from .models import Profile, Post
 
 
 @login_required(login_url='sign-in')
 def index(request):
-	context = {}
+	user_object = User.objects.get(username=request.user.username)
+	user_profile = Profile.objects.get(user=user_object)
+	context = {
+		'user_profile': user_profile
+	}
 	return render(request, 'core/index.html', context)
 
 
@@ -98,3 +102,17 @@ def settings(request):
 		'user_profile': user_profile
 	}
 	return render(request, 'core/setting.html', context)
+
+
+@login_required(login_url='sign-in')
+def upload(request):
+	if request.method == 'POST':
+		user = request.user.username
+		image = request.FILES.get('image-upload')
+		caption = request.POST['caption']
+
+		new_post = Post.objects.create(user=user, image=image, caption=caption)
+		new_post.save()
+		return redirect('home')
+	else:
+		return redirect('home')
